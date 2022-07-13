@@ -1,9 +1,9 @@
-package de.deroq.punishmentsystem.ban;
+package de.deroq.punishmentsystem.commands.ban;
 
 import de.deroq.punishmentsystem.PunishmentSystem;
 import de.deroq.punishmentsystem.models.PunishmentEntry;
 import de.deroq.punishmentsystem.models.ban.BanScreen;
-import de.deroq.punishmentsystem.models.misc.PunishmentType;
+import de.deroq.punishmentsystem.models.misc.PunishmentEntryType;
 import de.deroq.punishmentsystem.utils.Constants;
 import de.deroq.punishmentsystem.utils.PunishmentUtils;
 import net.md_5.bungee.api.CommandSender;
@@ -19,11 +19,11 @@ import java.util.UUID;
  * @since 11.07.2022
  */
 
-public class BanCommand extends Command {
+public class BtCommand extends Command {
 
     private final PunishmentSystem punishmentSystem;
 
-    public BanCommand(String name, PunishmentSystem punishmentSystem) {
+    public BtCommand(String name, PunishmentSystem punishmentSystem) {
         super(name);
         this.punishmentSystem = punishmentSystem;
     }
@@ -35,7 +35,7 @@ public class BanCommand extends Command {
             return;
         }
 
-        if (args.length < 2) {
+        if (args.length != 2) {
             commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "/ban <player> <template>"));
             return;
         }
@@ -53,22 +53,31 @@ public class BanCommand extends Command {
         }
 
         String template = args[1].toUpperCase();
-        punishmentSystem.getPunishmentTemplateManager().getTemplate(template).thenAcceptAsync(banTemplate -> {
-            if (banTemplate == null) {
+        punishmentSystem.getPunishmentTemplateManager().getTemplate(template).thenAcceptAsync(punishmentTemplate -> {
+            if (punishmentTemplate == null) {
                 commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Dieses Template gibt es nicht"));
                 return;
             }
 
+            if(!punishmentTemplate.getPunishmentType().equals(PunishmentEntryType.BAN.toString())) {
+                commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib ein valides Ban-Template an"));
+                return;
+            }
+
             long timestamp = System.currentTimeMillis();
-            long duration = (banTemplate.getDuration() != -1 ? banTemplate.getDuration() + timestamp : -1);
-            String from = (commandSender instanceof ProxiedPlayer ? ((ProxiedPlayer) commandSender).getUniqueId().toString() : "CONSOLE");
+            long duration = (punishmentTemplate.getDuration() != -1 ? punishmentTemplate.getDuration() + timestamp : -1);
+            String from = commandSender.getName();
+            String reason = punishmentTemplate.getReason();
+            String durationString = punishmentTemplate.getDurationString();
+            String punishmentType = PunishmentEntryType.BAN.toString();
 
             PunishmentEntry punishmentEntry = new PunishmentEntry.builder()
                     .setTimestamp(timestamp)
                     .setTemplate(template)
+                    .setReason(reason)
                     .setDuration(duration)
                     .setFrom(from)
-                    .setPunishmentType(PunishmentType.BAN.toString())
+                    .setPunishmentType(punishmentType)
                     .build();
 
             punishmentSystem.getPunishmentUserManager().punishUser(uuid, targetPlayer.getName(), punishmentEntry).thenAcceptAsync(alreadyBanned -> {
@@ -78,17 +87,18 @@ public class BanCommand extends Command {
                 }
 
                 targetPlayer.disconnect(BanScreen.create(
-                        banTemplate.getReason(),
+                        reason,
                         duration).toString());
 
-                //punishmentSystem.getPunishmentUserManager().addBanHistoryEntry(targetPlayer.getUniqueId().toString(), targetPlayer.getName(), timestamp, template, from);
                 commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "§aSpieler wurde gebannt"));
 
-                PunishmentUtils.getStaffMembers(commandSender.getName(), (staffMembers -> staffMembers.forEach(proxiedPlayer -> {
-                    proxiedPlayer.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "§c" + targetPlayer.getName() + " §3wurde von §a" + commandSender.getName() + " §3gebannt"));
-                    proxiedPlayer.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Grund: §c" + banTemplate.getReason()));
-                    proxiedPlayer.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Dauer: §e" + banTemplate.getDurationString()));
+                PunishmentUtils.getStaffMembers(commandSender.getName(), (staffMembers -> staffMembers.forEach(player -> {
+                    player.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "§c" + targetPlayer.getName() + " §3wurde von §a" + commandSender.getName() + " §3gebannt"));
+                    player.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Grund: §c" + template + "(" + reason + ")"));
+                    player.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Dauer: §e" + durationString));
                 })));
+
+                punishmentSystem.getPunishmentUserManager().addHistoryEntry(uuid, targetPlayer.getName(), punishmentEntry);
             });
         });
     }

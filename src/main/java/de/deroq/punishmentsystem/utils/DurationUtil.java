@@ -10,15 +10,13 @@ import java.util.Optional;
 
 public enum DurationUtil {
 
-    HOURS(60 * 60 * 1000, 'h'),
+    MINUTES(60 * 1000, 'm'),
+    HOURS(60 * MINUTES.getDuration(), 'h'),
     DAYS(24 * HOURS.getDuration(), 'd'),
-    WEEKS(7 * DAYS.getDuration(), 'w'),
-    MONTHS(30 * WEEKS.getDuration(), 'm'),
-    YEARS(12 * MONTHS.getDuration(), 'y'),
     PERMANENTLY(-1, 'p');
 
-    private long duration;
-    private char unit;
+    private final long duration;
+    private final char unit;
 
     DurationUtil(long duration, char unit) {
         this.duration = duration;

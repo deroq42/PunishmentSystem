@@ -5,8 +5,10 @@ package de.deroq.punishmentsystem.models.misc;
  * @since 11.07.2022
  */
 
-public enum PunishmentType {
+public enum PunishmentEntryType {
 
     BAN,
-    MUTE;
+    MUTE,
+    KICK,
+    UNBAN;
 }

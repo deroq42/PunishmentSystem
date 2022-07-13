@@ -1,9 +1,8 @@
 package de.deroq.punishmentsystem.commands;
 
 import de.deroq.punishmentsystem.PunishmentSystem;
-import de.deroq.punishmentsystem.models.misc.PunishmentType;
+import de.deroq.punishmentsystem.models.misc.PunishmentEntryType;
 import de.deroq.punishmentsystem.utils.Constants;
-import de.deroq.punishmentsystem.utils.DurationUtil;
 import de.deroq.punishmentsystem.utils.PunishmentUtils;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -28,8 +27,8 @@ public class TemplateCommand extends Command {
 
     @Override
     public void execute(CommandSender commandSender, String[] args) {
-        if (!commandSender.hasPermission("punishment.template")) {
-            commandSender.sendMessage(TextComponent.fromLegacyText("§cDazu hast du keine Rechte!"));
+        if (!commandSender.hasPermission("punishment.templates")) {
+            commandSender.sendMessage(TextComponent.fromLegacyText("§cYou do not have permission to execute this command!"));
             return;
         }
 
@@ -41,39 +40,28 @@ public class TemplateCommand extends Command {
 
             String id = args[1].toUpperCase();
             String durationString = args[2].toLowerCase();
-            String type = args[3].toUpperCase();
-            StringBuilder reason = new StringBuilder();
-            DurationUtil durationUtil;
-            long duration;
+            long duration = PunishmentUtils.validateDuration(durationString);
 
-            if (durationString.equals("permanent")) {
-                duration = -1;
-            } else {
-                if (durationString.length() != 2) {
-                    commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib eine valide Dauer an, sie darf nur aus zwei Zeichen bestehen. Beispiel: 3d, 4w, 3m"));
-                    return;
-                }
-
-                char unit = durationString.charAt(1);
-                if (!PunishmentUtils.isUnitValid(durationString, unit)) {
-                    commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib eine valide Unit an: h-Stunden, d-Tage, w-Wochen, m-Monate, y-Jahre, permanent"));
-                    return;
-                }
-
-                durationUtil = DurationUtil.getDurationUtilByUnit(unit).get();
-                duration = durationUtil.getDuration() * Character.digit(durationString.charAt(0), 24);
-            }
-
-            if (!EnumUtils.isValidEnum(PunishmentType.class, type)) {
-                commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib einen validen Type an: " + Arrays.toString(PunishmentType.values())));
+            if(duration == 0) {
+                commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib eine valide Dauer an, Beispiel: 15m, 5h, 30d"));
+                commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Folgende Units gibt es: m-Minuten, h-Stunden, d-Tage, permanent"));
                 return;
             }
 
-            for (int i = 4; i < args.length; i++) {
-                reason.append(" ").append(args[i]);
+            String type = args[3].toUpperCase();
+            if (!EnumUtils.isValidEnum(PunishmentEntryType.class, type)) {
+                commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Bitte gib einen validen Type an: " + Arrays.toString(PunishmentEntryType.values())));
+                return;
             }
 
-            punishmentSystem.getPunishmentTemplateManager().createTemplate(id, duration, durationString, type, reason.toString().trim()).thenAcceptAsync(exists -> {
+            StringBuilder reasonBuilder = new StringBuilder();
+            for (int i = 4; i < args.length; i++) {
+                reasonBuilder.append(" ").append(args[i]);
+            }
+
+            String reason = reasonBuilder.toString().trim();
+
+            punishmentSystem.getPunishmentTemplateManager().createTemplate(id, duration, durationString, type, reason).thenAcceptAsync(exists -> {
                 if (exists) {
                     commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Dieses Template gibt es bereits"));
                     return;
@@ -125,6 +113,8 @@ public class TemplateCommand extends Command {
 
                         commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "Template wurde gelöscht"));
                     });
+                } else {
+                    commandSender.sendMessage(TextComponent.fromLegacyText(Constants.PREFIX + "/template delete <id>"));
                 }
                 break;
             default:

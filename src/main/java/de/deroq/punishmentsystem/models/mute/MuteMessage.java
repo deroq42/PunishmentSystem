@@ -23,7 +23,7 @@ public class MuteMessage {
 
     @Override
     public String toString() {
-        return "§3Du wurdest aus dem Chat gesperrt\n" +
+        return "§3Du wurdest aus dem Chat gebannt\n" +
                 "§3Grund: §c" + reason + "\n" +
                 "§3Dauer: §e" + PunishmentUtils.formatDate(duration) + "\n" +
                 "\n" +

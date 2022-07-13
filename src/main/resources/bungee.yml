@@ -4,3 +4,11 @@ author: deroq
 main: de.deroq.punishmentsystem.PunishmentSystem
 commands:
   template:
+  bt:
+  ban:
+  unban:
+  kick:
+  mute:
+  mt:
+  unmute:
+  history:
